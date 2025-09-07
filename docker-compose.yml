@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  lexa:
+    build: .
+    container_name: lexa_agression_ai
+    stop_grace_period: 20s
+    ports:
+      - "9000:9000"  # Prometheus metrics
+      - "8080:8080"  # Health endpoint
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - TZ=UTC
+    restart: unless-stopped
+

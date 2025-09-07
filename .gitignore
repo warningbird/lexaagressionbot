@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.dll
+*.egg-info/
+.dist/
+build/
+
+# Virtual env
+.venv/
+venv/
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+
+# Env
+.env
+.env.bak
+
+# Tests and tooling
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local data
+bot.db
+
+# Node/npm leftovers (just in case)
+node_modules/
+
