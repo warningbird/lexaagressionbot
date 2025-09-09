@@ -1,16 +1,15 @@
-from datetime import datetime, UTC
-from zoneinfo import ZoneInfo
 import asyncio
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-from aiogram import Router, F, Bot
+from aiogram import Bot, F, Router
 from aiogram.enums import ChatType, ContentType
 from aiogram.types import Message
 
-from bot.routers.shared import handle_llm_request_shared
-from bot.routers import shared as shared_ctx
-from bot.prompts import SYSTEM_PROMPT
 from bot.openai_service import OpenAIService
-
+from bot.prompts import SYSTEM_PROMPT
+from bot.routers import shared as shared_ctx
+from bot.routers.shared import handle_llm_request_shared
 
 _OAI = OpenAIService()
 _last_poll_on_date: dict[int, str] = {}

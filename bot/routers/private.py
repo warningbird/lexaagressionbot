@@ -1,10 +1,9 @@
-from aiogram import Router, F
+from aiogram import F, Router
+from aiogram.enums import ChatType
 from aiogram.types import Message
-from aiogram.enums import ContentType, ChatType
 
-from bot.routers.shared import handle_llm_request_shared
 from bot.routers import shared as shared_ctx
-
+from bot.routers.shared import handle_llm_request_shared
 
 router = Router()
 

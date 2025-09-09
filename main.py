@@ -1,8 +1,13 @@
 import asyncio
 import logging
+
 from aiogram import Bot
 from dotenv import load_dotenv
+
+from bot.app import build_app, start_background_tasks
+from bot.health import start_health_server
 from bot.logging_utils import configure_json_logging
+from bot.metrics import start_metrics_server
 from config import load_config
 
 load_dotenv()
@@ -11,9 +16,6 @@ configure_json_logging(logging.INFO)
 CFG = load_config()
 BOT_TOKEN = CFG.bot_token
 
-from bot.app import build_app, start_background_tasks
-from bot.metrics import start_metrics_server
-from bot.health import start_health_server
 
 async def main():
     bot = Bot(token=BOT_TOKEN)

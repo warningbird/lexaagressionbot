@@ -1,10 +1,10 @@
-import time
 import logging
-from typing import Sequence
+import time
+from collections.abc import Sequence
 
 from openai import OpenAI, OpenAIError, RateLimitError
-from config import load_config
 
+from config import load_config
 
 CFG = load_config()
 

@@ -1,4 +1,4 @@
-from prometheus_client import Counter, Histogram, Gauge, start_http_server
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 REQUESTS = Counter("bot_requests_total", "Total incoming requests", ["type"])  # text, sticker, gif, reaction
 RESPONSES = Counter("bot_responses_total", "Total responses sent", ["type"])  # text, sticker

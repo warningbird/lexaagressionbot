@@ -1,14 +1,13 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from aiogram import Bot
 
-from config import load_config
-from bot.text_utils import format_in_style
 from bot.openai_service import OpenAIService
-
+from bot.text_utils import format_in_style
+from config import load_config
 
 CFG = load_config()
 

@@ -1,9 +1,9 @@
 from aiogram import Bot, Dispatcher
 
-from bot.routers.shared import setup_shared, start_idle_monitor
 from bot.routers.groups import setup_group_router
 from bot.routers.private import router as private_router
 from bot.routers.reactions import router as reactions_router
+from bot.routers.shared import setup_shared, start_idle_monitor
 
 
 def build_app(bot: Bot) -> Dispatcher:

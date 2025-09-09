@@ -1,24 +1,22 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta, UTC
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 from aiogram import Bot
+from aiogram import exceptions as tg_exc
 from aiogram.types import Message
 from aiogram.utils.chat_action import ChatActionSender
-from aiogram import exceptions as tg_exc
-
-from config import load_config
-from bot.prompts import SYSTEM_PROMPT
-from bot.text_utils import format_in_style
-from bot.openai_service import OpenAIService
-from bot.services.rate_limit import RateLimiter
-from bot.services.stickers import StickerService
-from bot.logging_utils import log_with_context
-from bot.services.idle_monitor import idle_monitor_loop
-from bot.metrics import RESPONSES, ERRORS, RATE_LIMITED, LLM_LATENCY, ACTIVE_CHATS
 from openai import OpenAIError, RateLimitError
 
+from bot.logging_utils import log_with_context
+from bot.metrics import ACTIVE_CHATS, ERRORS, LLM_LATENCY, RATE_LIMITED, RESPONSES
+from bot.openai_service import OpenAIService
+from bot.prompts import SYSTEM_PROMPT
+from bot.services.idle_monitor import idle_monitor_loop
+from bot.services.rate_limit import RateLimiter
+from bot.services.stickers import StickerService
+from bot.text_utils import format_in_style
+from config import load_config
 
 CFG = load_config()
 _bot: Bot | None = None
@@ -49,14 +47,17 @@ def pick_style_and_length() -> tuple[str, str]:
     return style, length
 
 
-def build_user_prompt(user_text: str, style: str, length: str, mention: Optional[str] = None, greeting_ok: bool = True) -> str:
+def build_user_prompt(user_text: str, style: str, length: str, mention: str | None = None, greeting_ok: bool = True) -> str:
     parts: list[str] = []
     if mention:
         parts.append(f"Адресуйся к {mention} в тексте, если уместно.")
     if not greeting_ok:
         parts.append("Не приветствуйся и не делай вступлений. Сразу к сути.")
     parts.append(
-        "Если тема относится к тестированию/качеству/менеджменту/айти/разработке/DevOps/архитектуре/данным или чему-то близкому — дай детальный ответ и в конце добавь одну короткую строку с конкретными ключевыми словами/техниками, которые стоит поискать (начинай со слов ‘Сам(а) ищи дальше: …’)."
+        "Если тема относится к тестированию/качеству/менеджменту/айти/разработке/DevOps/архитектуре/данным или чему-то близкому — дай детальный ответ."
+    )
+    parts.append(
+        "В конце добавь одну короткую строку с конкретными ключевыми словами/техниками, которые стоит поискать (начинай со слов ‘Сам(а) ищи дальше: …’)."
     )
     parts.append(f"Текст пользователя: {user_text}")
     return " \n".join(parts)
@@ -137,7 +138,7 @@ async def handle_llm_request_shared(m: Message, user_text: str, reply_to_id: int
                 answer = await asyncio.to_thread(OAI.ask, gen_messages, CFG.openai_model)
             except Exception:
                 answer = format_in_style("Модель недоступна. Повтори позже.", style=style)
-        except Exception as e:
+        except Exception:
             ERRORS.labels(kind="unexpected").inc()
             logging.exception("llm_unexpected_error")
             try:

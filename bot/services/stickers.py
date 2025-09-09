@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from aiogram import Bot
 
@@ -8,7 +7,7 @@ class StickerService:
     def __init__(self, bot: Bot, set_names: list[str]):
         self.bot = bot
         self.set_names = set_names
-        self._cached_file_ids: List[str] = []
+        self._cached_file_ids: list[str] = []
 
     async def ensure_loaded(self) -> None:
         if self._cached_file_ids:

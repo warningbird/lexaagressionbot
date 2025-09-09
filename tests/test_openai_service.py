@@ -5,8 +5,9 @@ from types import SimpleNamespace
 os.environ.setdefault("BOT_TOKEN", "TEST_TOKEN")
 os.environ.setdefault("OPENAI_API_KEY", "TEST_OPENAI_KEY")
 
-from bot.openai_service import OpenAIService
 from openai import OpenAIError, RateLimitError
+
+from bot.openai_service import OpenAIService
 
 
 class _DummyClient:
@@ -63,19 +64,22 @@ class _ErrorClient:
 
 def test_openai_service_raises_openai_error():
     svc = OpenAIService(client=_ErrorClient(OpenAIError("boom")))
+    raised = False
     try:
         svc.ask([{"role": "user", "content": "u"}], max_retries=1, timeout_sec=0.01)
-        assert False, "should raise"
     except OpenAIError:
-        pass
+        raised = True
+    assert raised
 
 
 def test_openai_service_raises_generic_error():
     svc = OpenAIService(client=_ErrorClient(Exception("x")))
+    raised = False
     try:
         svc.ask([{"role": "user", "content": "u"}], max_retries=1, timeout_sec=0.01)
-        assert False, "should raise"
     except Exception as e:
+        raised = True
         assert "x" in str(e)
+    assert raised
 
 

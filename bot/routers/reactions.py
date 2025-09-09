@@ -1,11 +1,9 @@
-from datetime import datetime, UTC
 
 from aiogram import Router
 from aiogram.types import MessageReactionUpdated
 
-from bot.routers.shared import handle_llm_request_shared
 from bot.routers import shared as shared_ctx
-
+from bot.routers.shared import handle_llm_request_shared
 
 router = Router()
 
