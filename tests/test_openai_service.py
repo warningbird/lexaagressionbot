@@ -1,4 +1,9 @@
+import os
 from types import SimpleNamespace
+
+# Provide dummy env so config.load_config() doesn't fail on import
+os.environ.setdefault("BOT_TOKEN", "TEST_TOKEN")
+os.environ.setdefault("OPENAI_API_KEY", "TEST_OPENAI_KEY")
 
 from bot.openai_service import OpenAIService
 
