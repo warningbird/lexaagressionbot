@@ -23,12 +23,53 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run tests
         run: |
-          pip install pytest
-          pytest -q
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        run: |
+          pytest -q --cov=. --cov-report=xml --cov-fail-under=70
+      - name: Upload coverage.xml
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install ruff
+        run: pip install ruff
+      - name: Run ruff
+        run: ruff check .
+
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install bandit
+        run: pip install bandit
+      - name: Run bandit
+        run: bandit -r . -q -f json -o bandit.json || true
+      - name: Upload bandit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit.json
 
   quality-gates:
     runs-on: ubuntu-latest
@@ -49,11 +90,11 @@ jobs:
           artifact-name: qg_artifacts
           github-repo: ${{ github.repository }}
           openai-model: gpt-4o-mini
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
 
   deploy:
-    needs: [test]
+    needs: [test, lint, sast]
     runs-on: ubuntu-latest
     environment: production
     steps:

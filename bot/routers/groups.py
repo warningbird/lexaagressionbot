@@ -54,7 +54,6 @@ async def group_trigger(m: Message, bot: Bot):
                     q = text.replace(mention, "").strip() or (m.reply_to_message.text if m.reply_to_message else "") or (m.caption or "")
                     tl = (q or "").lower()
                     if "шмел" in tl:
-                        # allow only one poll per chat per local (Almaty) day
                         today_key = datetime.now(ZoneInfo("Asia/Almaty")).date().isoformat()
                         last_key = _last_poll_on_date.get(m.chat.id)
                         if last_key == today_key:
