@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Quality Gates Inventory (Bugeera)
-        uses: <owner>/Bugeera/.github/actions/quality-gates-inventory@main
+        uses: warningbird/bugeera/.github/actions/quality-gates-inventory@master
         with:
           fail-on: policy
           output-dir: qg_artifacts
