@@ -9,9 +9,8 @@ from bot.services.rate_limit import RateLimiter
 
 
 def test_build_user_prompt_basic():
-    text = build_user_prompt("привет мир", style="passive", length="short", greeting_ok=False)
+    text = build_user_prompt("привет мир", style="toxic", length="normal", greeting_ok=False)
     assert "привет мир" in text
-    assert "кратким" in text or "кратким".upper() in text
     assert "Сразу к сути" in text
 
 
@@ -19,8 +18,8 @@ def test_pick_style_and_length_distribution():
     # smoke: function returns valid categories
     for _ in range(10):
         style, length = pick_style_and_length()
-        assert style in {"toxic", "passive", "corp"}
-        assert length in {"short", "normal"}
+        assert style in {"toxic"}
+        assert length in {"normal"}
 
 
 def test_rate_limiter():

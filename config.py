@@ -12,7 +12,7 @@ class AppConfig:
     telegram_chunk_size: int = 4000
     max_user_prompt_chars: int = 2000
     idle_check_interval_sec: int = 300
-    idle_threshold_hours: int = 8
+    idle_threshold_hours: int = 14
     roast_probability: float = 0.1
     greet_suppress_hours: int = 12
     roast_cooldown_hours: int = 6

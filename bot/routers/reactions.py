@@ -4,6 +4,7 @@ from aiogram import Router
 from aiogram.types import MessageReactionUpdated
 
 from bot.routers.shared import handle_llm_request_shared
+from bot.routers import shared as shared_ctx
 
 
 router = Router()
@@ -14,7 +15,14 @@ async def on_reaction(event: MessageReactionUpdated):
     reactor = event.user
     if reactor is None:
         return
-    mention = f"@{reactor.username}" if reactor.username else (reactor.full_name or "ты")
+    # React only if the reaction targets a bot's own message
+    chat = event.chat
+    if chat is None:
+        return
+    bot_msg_ids = shared_ctx._bot_messages_by_chat.get(chat.id, set())
+    if event.message_id not in bot_msg_ids:
+        return
+    mention = f"@{reactor.username}" if reactor.username else (reactor.full_name or "")
 
     # формируем текст задачи для LLM
     try:
@@ -29,8 +37,7 @@ async def on_reaction(event: MessageReactionUpdated):
         reaction_str = "(реакция)"
 
     user_text = (
-        f"Пользователь {mention} поставил реакцию {reaction_str} на сообщение бота. "
-        f"Спроси резко и по делу, что ему нужно. Обязательно учитывай контекст сообщения. Обязательно учитывай реакцию."
+        f"Реакция {reaction_str} от {mention}. Уточни токсично и по делу контекст и намерение."
     )
 
     # Оборачиваем в псевдо Message

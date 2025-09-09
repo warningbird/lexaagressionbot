@@ -1,4 +1,6 @@
 from datetime import datetime, UTC
+from zoneinfo import ZoneInfo
+import asyncio
 
 from aiogram import Router, F, Bot
 from aiogram.enums import ChatType, ContentType
@@ -6,6 +8,12 @@ from aiogram.types import Message
 
 from bot.routers.shared import handle_llm_request_shared
 from bot.routers import shared as shared_ctx
+from bot.prompts import SYSTEM_PROMPT
+from bot.openai_service import OpenAIService
+
+
+_OAI = OpenAIService()
+_last_poll_on_date: dict[int, str] = {}
 
 
 router = Router()
@@ -17,7 +25,6 @@ def setup_group_router(dp, bot: Bot):
 
 @router.message(F.text & (F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP})))
 async def group_trigger(m: Message, bot: Bot):
-    # Ignore messages from bots to prevent loops
     if m.from_user and m.from_user.is_bot:
         return
     text = m.text or ""
@@ -44,12 +51,96 @@ async def group_trigger(m: Message, bot: Bot):
                         if forwarded_text:
                             await handle_llm_request_shared(m, forwarded_text, reply_to_id=m.message_id)
                             return
-                    q = text.replace(mention, "").strip() or "Ответь на это сообщение контекстно."
+                    q = text.replace(mention, "").strip() or (m.reply_to_message.text if m.reply_to_message else "") or (m.caption or "")
+                    tl = (q or "").lower()
+                    if "шмел" in tl:
+                        # allow only one poll per chat per local (Almaty) day
+                        today_key = datetime.now(ZoneInfo("Asia/Almaty")).date().isoformat()
+                        last_key = _last_poll_on_date.get(m.chat.id)
+                        if last_key == today_key:
+                            try:
+                                msg_texts = [
+                                    {"role": "system", "content": SYSTEM_PROMPT},
+                                    {"role": "user", "content": "Сгенерируй короткий токсичный ответ: сегодня уже голосовали по бару, хватит."},
+                                ]
+                                already = await asyncio.to_thread(_OAI.ask, msg_texts, shared_ctx.CFG.openai_model)
+                            except Exception:
+                                already = "Сегодня уже голосовали. Успокойся."
+                            await bot.send_message(chat_id=m.chat.id, text=already, reply_to_message_id=m.message_id)
+                            return
+                        try:
+                            intro_msgs = [
+                                {"role": "system", "content": SYSTEM_PROMPT},
+                                {"role": "user", "content": "Сгенерируй короткое токсичное приглашение в бар ‘Шмель’ для чата; упомяни, что дальше будет голосовалка. Без префиксов."},
+                            ]
+                            poll_msgs = [
+                                {"role": "system", "content": SYSTEM_PROMPT},
+                                {"role": "user", "content": "Сгенерируй ОДНУ короткую язвительную строку-вопрос для голосовалки: идут ли в бар ‘Шмель’. Без кавычек и префиксов. До 120 символов."},
+                            ]
+                            opt_yes_tail_msgs = [
+                                {"role": "system", "content": SYSTEM_PROMPT},
+                                {"role": "user", "content": "Сгенерируй КОРОТКИЙ токсичный хвост-обоснование для варианта 'иду' (до 30 символов). Без кавычек."},
+                            ]
+                            opt_no_tail_msgs = [
+                                {"role": "system", "content": SYSTEM_PROMPT},
+                                {"role": "user", "content": "Сгенерируй КОРОТКИЙ токсичный хвост-обоснование для варианта 'не иду' (до 30 символов). Без кавычек."},
+                            ]
+                            intro = await asyncio.to_thread(_OAI.ask, intro_msgs, shared_ctx.CFG.openai_model)
+                            question = await asyncio.to_thread(_OAI.ask, poll_msgs, shared_ctx.CFG.openai_model)
+                            tail_yes = await asyncio.to_thread(_OAI.ask, opt_yes_tail_msgs, shared_ctx.CFG.openai_model)
+                            tail_no = await asyncio.to_thread(_OAI.ask, opt_no_tail_msgs, shared_ctx.CFG.openai_model)
+                            if not intro or not intro.strip():
+                                raise ValueError("empty intro")
+                            if not question or not question.strip():
+                                raise ValueError("empty question")
+                            tail_yes = (tail_yes or "").strip()
+                            tail_no = (tail_no or "").strip()
+                        except Exception:
+                            intro = "Голосуем."
+                            question = "В бар ‘Шмель’ идёшь?"
+                            tail_yes = "иду"
+                            tail_no = "не иду"
+
+                        if not question:
+                            question = "В бар ‘Шмель’ идёшь?"
+                        if len(question) > 300:
+                            question = question[:300]
+                        tail_yes = (tail_yes or "").strip().strip('"').strip("'")
+                        tail_no = (tail_no or "").strip().strip('"').strip("'")
+                        opt_yes = f"иду — {tail_yes}" if tail_yes else "иду"
+                        opt_no = f"не иду — {tail_no}" if tail_no else "не иду"
+                        if len(opt_yes) > 50:
+                            opt_yes = opt_yes[:50]
+                        if len(opt_no) > 50:
+                            opt_no = opt_no[:50]
+
+                        try:
+                            msg_intro = await bot.send_message(chat_id=m.chat.id, text=intro, reply_to_message_id=m.message_id)
+                            shared_ctx._bot_messages_by_chat.setdefault(m.chat.id, set()).add(msg_intro.message_id)
+                        except Exception:
+                            pass
+
+                        try:
+                            poll = await bot.send_poll(
+                                chat_id=m.chat.id,
+                                question=question,
+                                options=[opt_yes, opt_no],
+                                is_anonymous=False,
+                                allows_multiple_answers=False,
+                            )
+                            shared_ctx._bot_messages_by_chat.setdefault(m.chat.id, set()).add(poll.message_id)
+                            _last_poll_on_date[m.chat.id] = today_key
+                        except Exception:
+                            try:
+                                msg_fallback = await bot.send_message(chat_id=m.chat.id, text=f"{question}\n\nВарианты: {opt_yes} / {opt_no}")
+                                shared_ctx._bot_messages_by_chat.setdefault(m.chat.id, set()).add(msg_fallback.message_id)
+                                _last_poll_on_date[m.chat.id] = today_key
+                            except Exception:
+                                pass
+                        return
                     await handle_llm_request_shared(m, q, reply_to_id=m.message_id)
                     return
-    # NOTE: last_activity update must be handled in shared handler after send
-    # Just touch it here if needed
-    # last_activity_by_chat[m.chat.id] = datetime.now(UTC)
+    
 
 
 @router.message((F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP})) & ((F.content_type == ContentType.STICKER) | (F.content_type == ContentType.ANIMATION)))
