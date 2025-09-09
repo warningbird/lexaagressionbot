@@ -90,6 +90,20 @@ Logs will show "Start polling" and OpenAI responses with status 200 OK (JSON log
 pip install -r requirements.txt --upgrade
 ```
 
+## Dev checks (local)
+```
+pip install -r requirements-dev.txt
+
+# Lint
+ruff check .
+
+# Tests with coverage
+pytest -q --cov=. --cov-report=term-missing
+
+# SAST
+bandit -r .
+```
+
 ## Production (optional)
 - Run via systemd/pm2/supervisor. Use absolute path to `.venv/bin/python` and `main.py`, enable autorestart and log collection.
 

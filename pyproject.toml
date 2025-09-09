@@ -12,6 +12,15 @@ target-version = "py311"
 lint.select = ["E","F","I","UP","B"]
 lint.ignore = []
 
+[tool.coverage.run]
+branch = true
+source = ["."]
+
+[tool.coverage.report]
+fail_under = 70
+skip_empty = true
+show_missing = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
