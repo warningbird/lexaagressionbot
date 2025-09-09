@@ -30,8 +30,30 @@ jobs:
           pip install pytest
           pytest -q
 
+  quality-gates:
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Quality Gates Inventory (Bugeera)
+        uses: <owner>/Bugeera/.github/actions/quality-gates-inventory@main
+        with:
+          fail-on: policy
+          output-dir: qg_artifacts
+          upload-artifacts: 'true'
+          artifact-name: qg_artifacts
+          github-repo: ${{ github.repository }}
+          openai-model: gpt-4o-mini
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
   deploy:
-    needs: test
+    needs: [test]
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -48,9 +70,6 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
         run: |
-          # Sync app secrets to Fly (idempotent)
           flyctl secrets set BOT_TOKEN="$BOT_TOKEN" OPENAI_API_KEY="$OPENAI_API_KEY" OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}"
-          # Deploy using Dockerfile
           flyctl deploy --remote-only
-
 
