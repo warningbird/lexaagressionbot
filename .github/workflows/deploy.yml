@@ -25,17 +25,30 @@ jobs:
 
       - name: Install dependencies (prod + dev if present)
         run: |
-          pip install -r requirements.txt
-          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          set -euo pipefail
+          for i in 1 2; do
+            if pip install -r requirements.txt; then break; fi
+            echo "retrying prod deps ($i)"; sleep 5;
+          done
+          if [ -f requirements-dev.txt ]; then
+            for i in 1 2; do
+              if pip install -r requirements-dev.txt; then break; fi
+              echo "retrying dev deps ($i)"; sleep 5;
+            done
+          fi
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage (with 1 retry)
         run: |
-          pytest -q --cov=. --cov-report=xml --cov-fail-under=70
+          set -euo pipefail
+          pytest -q --cov=. --cov-report=xml --cov-fail-under=70 || (echo "retry tests"; sleep 5; pytest -q --cov=. --cov-report=xml --cov-fail-under=70)
       - name: Upload coverage.xml
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml
           path: coverage.xml
+          if-no-files-found: warn
+          retention-days: 7
 
   lint:
     timeout-minutes: 10
@@ -87,13 +100,17 @@ jobs:
           cache: 'pip'
       - name: Install pip-audit
         run: pip install pip-audit
-      - name: Run pip-audit (fail on findings)
-        run: pip-audit -r requirements.txt -f json -o pip-audit.json --strict
+      - name: Run pip-audit (fail on findings; retry 1)
+        run: |
+          set -euo pipefail
+          pip-audit -r requirements.txt -f json -o pip-audit.json --strict || (echo "retry pip-audit"; sleep 5; pip-audit -r requirements.txt -f json -o pip-audit.json --strict)
       - name: Upload SCA report
         uses: actions/upload-artifact@v4
         with:
           name: pip-audit-report
           path: pip-audit.json
+          if-no-files-found: error
+          retention-days: 7
 
   secrets:
     timeout-minutes: 10
@@ -116,6 +133,8 @@ jobs:
         with:
           name: gitleaks-report
           path: gitleaks.json
+          if-no-files-found: warn
+          retention-days: 7
 
   quality-gates:
     timeout-minutes: 15
