@@ -12,3 +12,8 @@ def test_build_user_prompt_contains_it_rule():
     assert "Сам(а) ищи дальше" in text or "ищи дальше" in text
 
 
+def test_build_user_prompt_greeting_suppression_line():
+    text = build_user_prompt("любой текст", style="toxic", length="normal", greeting_ok=False)
+    assert "Сразу к сути" in text
+
+
