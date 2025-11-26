@@ -16,8 +16,8 @@ primary_region = 'waw'
   internal_port = 8080
   protocol = 'tcp'
   auto_stop_machines = 'off'
-  auto_start_machines = true
-  min_machines_running = 1
+  auto_start_machines = false
+  min_machines_running = 0
   processes = ['app']
   [[services.ports]]
     port = 8080
@@ -33,8 +33,8 @@ primary_region = 'waw'
   internal_port = 9000
   protocol = 'tcp'
   auto_stop_machines = 'off'
-  auto_start_machines = true
-  min_machines_running = 1
+  auto_start_machines = false
+  min_machines_running = 0
   processes = ['app']
   [[services.ports]]
     port = 9000
